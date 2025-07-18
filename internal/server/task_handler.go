@@ -121,7 +121,7 @@ func (s *Server) ListAllTasks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert tasks to []ApiTask[]
-	var response []ApiTask
+	response := make([]ApiTask, 0)
 	for _, task := range tasks {
 		response = append(response, taskToApiTask(task))
 	}
