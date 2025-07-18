@@ -8,8 +8,9 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"todo-web-go-vue/internal/repository"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/jackc/pgx/v5"
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -22,10 +23,14 @@ type Service interface {
 	// Close terminates the database connection.
 	// It returns an error if the connection cannot be closed.
 	Close() error
+
+	// Get the sqlc Queries
+	GetQueries() *repository.Queries
 }
 
 type service struct {
-	db *sql.DB
+	db      *sql.DB
+	Queries *repository.Queries
 }
 
 var (
@@ -44,12 +49,24 @@ func New() Service {
 		return dbInstance
 	}
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", username, password, host, port, database, schema)
+
+	// Open new Connection
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Run Migrations if needed
+	if err := repository.RunMigrations(db); err != nil {
+		log.Fatal(err)
+	}
+
+	// Create Queries
+	queries := repository.New(db)
+
 	dbInstance = &service{
-		db: db,
+		db:      db,
+		Queries: queries,
 	}
 	return dbInstance
 }
@@ -112,4 +129,9 @@ func (s *service) Health() map[string]string {
 func (s *service) Close() error {
 	log.Printf("Disconnected from database: %s", database)
 	return s.db.Close()
+}
+
+// Returns the Queries for sqlc db queries
+func (s *service) GetQueries() *repository.Queries {
+	return s.Queries
 }

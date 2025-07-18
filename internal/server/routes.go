@@ -7,12 +7,22 @@ import (
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
-	mux := http.NewServeMux()
+	apiMux := http.NewServeMux()
 
 	// Register routes
-	mux.HandleFunc("/", s.HelloWorldHandler)
+	apiMux.HandleFunc("/", s.HelloWorldHandler)
 
-	mux.HandleFunc("/health", s.healthHandler)
+	apiMux.HandleFunc("/health", s.healthHandler)
+
+	apiMux.HandleFunc("GET /tasks", s.ListAllTasks)
+
+	apiMux.HandleFunc("POST /task", s.CreateTaskHandler)
+	apiMux.HandleFunc("DELETE /task", s.DeleteTask)
+	apiMux.HandleFunc("PUT /task", s.UpdateTask)
+
+	// Add "/api" subroute
+	mux := http.NewServeMux()
+	mux.Handle("/api/", http.StripPrefix("/api", apiMux))
 
 	// Wrap the mux with CORS middleware
 	return s.corsMiddleware(mux)
